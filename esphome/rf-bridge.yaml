@@ -1,0 +1,215 @@
+esphome:
+  name: rf-bridge
+  platform: ESP8266
+  board: esp_wroom_02
+  platformio_options:
+    board_build.f_cpu: 160000000L
+
+# Enable logging
+logger:
+  baud_rate: 0 #RX被语音占用后需禁用原来的日志串口功能
+
+wifi:
+  networks:
+    - ssid: "xxxxx"
+      password: "xxxxxx"
+    - ssid: "xxxxx2"
+      password: "xxxxxxxxxx2"
+
+  # Enable fallback hotspot (captive portal) in case wifi connection fails
+  ap:
+    ssid: "Rf-Bridge Fallback Hotspot"
+    password: "xxxxx"
+
+captive_portal:
+
+ota:
+
+external_components: #启用自定义组件
+  - source: github://ryanh7/esphome-custom-components@dev
+    components: [ audio_player, rf_bridge_cc1101 ]
+
+
+# Enable Home Assistant API
+api:
+  services:
+    - service: play_audio #在HASS里提供一个播放功能
+      variables:
+        url: string
+      then:
+        - audio_player.play:
+            url: !lambda "return url;"
+    - service: stop_audio #在HASS里提供一个暂停功能
+      then:
+        - audio_player.stop
+    - service: transmit #在HASS里提供一个发送信号功能，protocol默认可以填1，code类似于1111101010101010101
+      variables:
+        code: string 
+        protocol: int
+      then:
+        - rf_bridge_cc1101.transmit: 
+            code: !lambda "return code;" 
+            protocol: !lambda "return protocol;"
+
+globals:
+  # idle 1, wifi connected 2, reboot 3
+  - id: var_light_status #辅助控制状态灯
+    type: int
+    restore_value: no
+    initial_value: '0'
+  - id: var_failed_counter #辅助控制wifi未连接超时重启
+    type: int
+    restore_value: no
+    initial_value: '0'
+
+script:
+  - id: script_led_idle
+    mode: single
+    then:
+      - if:
+          condition:
+            lambda: "return (id(var_light_status) != 1) && (id(var_light_status) != 3);"
+          then:
+            - globals.set:
+                id: var_light_status
+                value: '1'
+            - light.turn_on:
+                id: indicator
+                effect: "slow flash"
+  - id: script_led_connected
+    mode: single
+    then:
+      - if:
+          condition:
+            lambda: "return (id(var_light_status) != 2) && (id(var_light_status) != 3);"
+          then:
+            - globals.set:
+                id: var_light_status
+                value: '2'
+            - light.turn_off:
+                id: indicator
+                transition_length: 0s
+  - id: script_led_reboot
+    mode: single
+    then:
+      - globals.set:
+          id: var_light_status
+          value: '3'
+      - light.turn_on:
+          id: indicator
+          effect: "fast flash"
+  # 重置失败统计数
+  - id: script_timout_reset
+    mode: single
+    then:
+      - globals.set:
+          id: var_failed_counter
+          value: '0'
+   # 3s检查一次，连续10分钟失败自动重启
+  - id: script_timout_then_reboot
+    mode: single
+    then:
+      - lambda: |-
+          id(var_failed_counter) += 1;
+          if (id(var_failed_counter) > 10*60/3) {
+            App.reboot();
+          }
+
+
+output:
+  - id: light_output
+    platform: esp8266_pwm
+    pin: GPIO13
+
+light:
+  - platform: monochromatic #指示灯
+    id: "indicator"
+    output: light_output
+    restore_mode: ALWAYS_OFF
+    effects:
+      - pulse:
+          name: "fast flash"
+          transition_length: 0s
+          update_interval: 100ms
+      - pulse:
+          name: "slow flash"
+          transition_length: 250ms
+          update_interval: 500ms
+
+    
+interval:
+  - interval: 3s #定时检查wifi连接情况，控制状态灯及超时重启
+    then:
+      - if:
+          condition:
+            wifi.connected
+          then:
+            - script.execute: script_led_connected
+            - script.execute: script_timout_reset
+          else:
+            - script.execute: script_led_idle
+            - script.execute: script_timout_then_reboot
+
+
+spi:
+  id: cc1101
+  clk_pin: GPIO16
+  mosi_pin: GPIO12
+  miso_pin: GPIO4
+
+
+rf_bridge_cc1101:
+  spi_id: cc1101
+  cs_pin: GPIO5
+  pin: GPIO14
+  dump: #示例，sensor没匹配成功且没设置下面触发器的时候，在控制台打印收到的内容。可用于识别新的433设备。
+    - rc_switch
+  # on_code_received: #示例，使用一个收到信号时候的触发器。参考esphome的remote receiver组件的on_rc_switch触发器
+  #   then:
+  #     - lambda: |-
+  #         ESP_LOGD("Trigger","received code %06X", x.code);
+  
+
+audio_player: #声音组件，支持基于http流的wav文件播放
+  volume: 100% #基准音量，可适当增减
+  buffer_size: 1024 #http流的缓冲区大小，网络原因造成卡顿时可尝试加大
+
+text_sensor: #示例，播放器状态改变时这个sensor跟着变，可以配合HASS把盒子配置为播放器，该sensor指示播放器状态
+  - platform: audio_player
+    name: "RF Bridge 1 Player Status"
+
+binary_sensor:
+  - platform: gpio #按钮
+    pin: GPIO0
+    id: "button"
+    filters:
+      - invert:
+      - delayed_on_off: 100ms
+    on_press: #按下亮灯
+      - light.turn_on:
+          id: indicator
+          transition_length: 0s
+    on_release:
+      - light.turn_off:
+          id: indicator
+          transition_length: 0s
+    on_click: #单击暂停播放声音
+      - audio_player.stop
+    on_multi_click: #长按3s闪烁指示灯，松手重启
+      - timing:
+          - ON for at least 3s
+        then:
+          - script.execute: script_led_reboot
+      - timing:
+          - ON for at least 3s
+          - OFF for at least 0.3s
+        then:
+          - lambda: |-
+              App.reboot();
+  - platform: rf_bridge_cc1101 #示例，这里配置了一个433人体传感器并绑定对应的433信号
+    name: "motion 1"
+    device_class: "motion"
+    filters:
+      - delayed_off: 500ms #传感器触发间隔。由于433一次会发送多个信号，建议最低不小于200ms，大可配置5min，10min等
+    code: "101010111110011001101010"
+    protocol: 1
