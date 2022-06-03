@@ -1,0 +1,33 @@
+{
+    "config": {
+		"title": "Esphome_Player",
+        "step": {
+            "user": {
+                "data": {
+                    "name": "名称",
+                    "sensorstate": "播放器状态传感器实体",
+                    "esphomeplay": "Esphome播放服务名称",
+					"esphomestop": "Esphome停止播放服务名称"
+                },
+                "title": "Esphome_Player"				
+            }
+        },
+		"error": {
+			"nosensorstate": "状态传感器无效"
+		},
+		"abort": {
+			"single_instance_allowed": "仅允许单个配置.",
+			"already_configured": "请勿重复配置."
+		}		
+    },
+	"options": {        
+        "step": {
+            "init": {
+                "data": {
+					"nomp3towav": "禁用mp3转码wav，修改后重载集成或重启才能生效。"
+                },
+                "title": "Esphome Player"
+            }
+        }
+    }
+}
