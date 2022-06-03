@@ -1,0 +1,6 @@
+"""Constants for the esphomeplayer component."""
+DOMAIN = "esphome_player"
+CONF_SENSORSTATE = "sensorstate"
+CONF_ESPHOMEPLAY = "esphomeplay"
+CONF_ESPHOMESTOP = "esphomestop"
+CONF_NOMP3TOWAV = "nomp3towav"
