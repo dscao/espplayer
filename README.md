@@ -2,9 +2,6 @@
 
 此版本请尽量使用homeassistant 2022以后的版本，之前旧版本未测试
 
-![1](https://user-images.githubusercontent.com/16587914/172015141-623a45e0-a98d-46a1-8ff4-2da8cc2cbe25.jpg)
-
-
 1、为 rf-bridge 盒子提供支持的TTS播放器
 
 https://github.com/ryanh7/esphome-custom-components/tree/dev 
@@ -34,6 +31,8 @@ sensor:
 重启ha后状态显示正常再添加此集成。
 
 示例1：
+
+![1](https://user-images.githubusercontent.com/16587914/172015141-623a45e0-a98d-46a1-8ff4-2da8cc2cbe25.jpg)
 
 ![2](https://user-images.githubusercontent.com/16587914/172015151-3a46df46-5340-4221-89da-0c74c1232823.jpg)
 
