@@ -1,0 +1,6 @@
+"""Constants for the espplayer component."""
+DOMAIN = "espplayer"
+CONF_SENSORSTATE = "sensorstate"
+CONF_ESPPLAY = "espplay"
+CONF_ESPSTOP = "espstop"
+CONF_ESPVOL = "espvol"

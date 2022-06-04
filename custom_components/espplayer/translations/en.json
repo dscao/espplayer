@@ -1,0 +1,34 @@
+{
+    "config": {
+		"title": "EspPlayer",
+		"description": "If you need help with configuration, look here: https://github.com/dscao/espplayer",
+        "step": {
+            "user": {
+                "data": {
+                    "name": "Player Name",
+                    "sensorstate": "Player Status Sensor Entity",
+                    "espplay": "Play service name or mqtt topic (eg: /mrdiynotifier/play)",
+					"espstop": "Stop playing the service name or mqtt topic (eg:/mrdiynotifier/stop)"
+                },
+                "title": "EspPlayer"				
+            }
+        },
+		"error": {
+			"nosensorstate": "Status sensor invalid"
+		},
+		"abort": {
+			"single_instance_allowed": "Only a single configuration is allowed.",
+			"already_configured": "Do not repeat configuration."
+		}		
+    },
+	"options": {
+        "step": {
+            "user":{
+                "data": {                    
+                    "espvol": "Volume control service or mqtt theme, which takes effect after reloading the service or restarting after modification"
+                },
+                "description": "Set volume control, leave blank if none."
+            }
+        }
+    }
+}
