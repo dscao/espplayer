@@ -8,6 +8,7 @@ https://github.com/ryanh7/esphome-custom-components/tree/dev
 
 通过上面esphome组件 esp8266 通过http流播放wav 等方法生成的esphome.rf_bridge_play_audio类似服务可播放音频，可用此集成。
 
+因为盒子只能播放wav格式, 用了ffmpeg转码，需要在config/www目录下创建 wav目录，即：/config/www/wav/ 存在。
 
 2、为ESP8266-Play-MP3-TTS提供支持的TTS播放器
 
