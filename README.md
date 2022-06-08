@@ -60,8 +60,7 @@ sensor: \
 
 ![7](https://user-images.githubusercontent.com/16587914/172015215-23f100be-5dc9-44a8-a6c3-01dde81cb27c.jpg)
 
-![8](https://user-images.githubusercontent.com/16587914/172015221-7444dd5f-3f75-4eb6-aad4-be751ed95c46.jpg)
-
-
 ![9](https://user-images.githubusercontent.com/16587914/172015378-cf5d5d32-d13f-4bc0-b2f4-51e71f3c8189.jpg)
 
+![10](https://user-images.githubusercontent.com/16587914/172663047-303c55eb-6d28-4da6-bdaf-e3ad28507ac9.jpg)
+设置音量控制 及 支持外网地址播放tts文件（利用公网ip或frp等反向代理使其它网络中的esp8266设备发声）
