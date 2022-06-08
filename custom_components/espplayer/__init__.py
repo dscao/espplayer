@@ -7,7 +7,7 @@ Developed by @dscao
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform, CONF_SCAN_INTERVAL, CONF_NAME
 from homeassistant.core import HomeAssistant
-from .const import CONF_SENSORSTATE, CONF_ESPPLAY, CONF_ESPSTOP, CONF_ESPVOL, DOMAIN
+from .const import CONF_SENSORSTATE, CONF_ESPPLAY, CONF_ESPSTOP, CONF_ESPVOL, CONF_ESPWAN, DOMAIN
 
 import logging
 

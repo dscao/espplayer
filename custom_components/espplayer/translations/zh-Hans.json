@@ -25,9 +25,10 @@
         "step": {
             "user":{
                 "data": {                    
-                    "espvol": "音量控制服务或mqtt主题，修改后重载服务或重启后生效"
+                    "espvol": "音量控制服务或mqtt主题，设置音量控制，无请留空或填 None。",
+					"espwan": "指定tts文件播放域名(或IP)及路径，局域网自动地址请留空或填 auto"
                 },
-                "description": "设置音量控制，无请留空。"
+                "description": "修改后重载服务或重启后生效"
             }
         }
     }

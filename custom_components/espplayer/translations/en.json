@@ -25,9 +25,10 @@
         "step": {
             "user":{
                 "data": {                    
-                    "espvol": "Volume control service or mqtt theme, which takes effect after reloading the service or restarting after modification"
+                    "espvol": "Volume control service or mqtt theme, Set volume control, leave blank or None if none.",
+					"espwan": "wan play the audio url, leave blank or auto if auto."
                 },
-                "description": "Set volume control, leave blank if none."
+                "description": "which takes effect after reloading the service or restarting after modification"
             }
         }
     }

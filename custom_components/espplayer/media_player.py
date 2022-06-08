@@ -16,6 +16,9 @@ from homeassistant.components import media_source
 
 import homeassistant.util.dt as dt_util
 
+from homeassistant.helpers.network import get_url
+
+
 from homeassistant.const import (
     STATE_IDLE, STATE_OFF, STATE_PAUSED, STATE_PLAYING, CONF_NAME
 )
@@ -34,7 +37,7 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.helpers.update_coordinator import CoordinatorEntity, DataUpdateCoordinator
 
-from .const import CONF_SENSORSTATE, CONF_ESPPLAY, CONF_ESPSTOP, CONF_ESPVOL, DOMAIN
+from .const import CONF_SENSORSTATE, CONF_ESPPLAY, CONF_ESPSTOP, CONF_ESPVOL, CONF_ESPWAN, DOMAIN
         
 from homeassistant.components.media_player.const import (
     MEDIA_TYPE_MUSIC,
@@ -85,18 +88,19 @@ async def async_setup_entry(
     espplay = config[CONF_ESPPLAY]
     espstop = config[CONF_ESPSTOP]
     espvol = entry.options.get(CONF_ESPVOL)
+    espwan = entry.options.get(CONF_ESPWAN)
     coordinator = hass.data[DOMAIN][entry.entry_id]
     
     _LOGGER.debug("sensorstate：%s, espplay：%s, espvol： %s", sensorstate,  espplay, espvol)
 
-    dev = ESPPlayer(hass, unique_id, name, sensorstate, espplay, espstop, espvol)
+    dev = ESPPlayer(hass, unique_id, name, sensorstate, espplay, espstop, espvol, espwan)
     async_add_entities([dev])
     
 
 
 class ESPPlayer(MediaPlayerEntity):
     """ESP Device"""
-    def __init__(self, hass, unique_id, name, sensorstate, espplay, espstop, espvol):
+    def __init__(self, hass, unique_id, name, sensorstate, espplay, espstop, espvol, espwan):
         """Initialize the ESP Player."""
         self._hass = hass
         self._unique_id = unique_id
@@ -104,6 +108,7 @@ class ESPPlayer(MediaPlayerEntity):
         self._espplay = espplay
         self._espstop = espstop
         self._espvol = espvol
+        self._espwan = espwan
         self._name = name
         self._volume = None
         self._muted = None
@@ -217,16 +222,23 @@ class ESPPlayer(MediaPlayerEntity):
         
         if self._espplay.split('.')[0] == "esphome":
             _LOGGER.debug("media_id is %s ,player: %s", media_id, self._espplay)
+            if self._espwan is not None and self._espwan != "auto":
+                instance_url = get_url(self.hass)
+                media_id = media_id.replace(instance_url,self._espwan)
             if self._mediatitle.split('.')[1] == "mp3":
                 wavfile = await self.async_audio2wav(self._mediatitle) 
                 media_id = media_id.replace(".mp3",".wav")
                 media_id = media_id.replace("/api/tts_proxy/","/local/wav/")
+            
             await self.hass.services.async_call(self._espplay.split('.')[0],
                     self._espplay.split('.')[1],
                     {"url": media_id},
                     blocking=True,)   
         elif self._espplay.split('/')[1] == "mrdiynotifier":
             media_id = media_id.replace(".wav",".mp3")
+            if self._espwan is not None and self._espwan != "auto":
+                instance_url = get_url(self.hass)
+                media_id = media_id = media_id.replace(instance_url,self._espwan)
             _LOGGER.debug("media_id is %s ,player: %s", media_id, self._espplay)
             await self.hass.services.async_call("mqtt",
                     "publish",
@@ -335,13 +347,13 @@ class ESPPlayer(MediaPlayerEntity):
     async def async_set_volume_level(self, volume: float) -> None:
         """Set volume level, range 0..1."""
         if self._espplay.split('.')[0] == "esphome":
-            assert self._espvol is not None
+            assert self._espvol is not None and self._espvol != "None"
             await self.hass.services.async_call(self._espplay.split('.')[0],
                     self._espplay.split('.')[1],
                     {"setvolume": volume},
                     blocking=True,)   
         elif self._espplay.split('/')[1] == "mrdiynotifier":
-            assert self._espvol is not None
+            assert self._espvol is not None and self._espvol != "None"
             await self.hass.services.async_call("mqtt",
                     "publish",
                     {"topic": self._espvol,"payload":volume},

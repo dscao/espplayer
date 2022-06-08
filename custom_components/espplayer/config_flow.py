@@ -10,7 +10,7 @@ import homeassistant.helpers.config_validation as cv
 from homeassistant.const import  CONF_NAME, CONF_SCAN_INTERVAL
 
 
-from .const import CONF_SENSORSTATE, CONF_ESPPLAY, CONF_ESPSTOP, CONF_ESPVOL, DOMAIN
+from .const import CONF_SENSORSTATE, CONF_ESPPLAY, CONF_ESPSTOP, CONF_ESPVOL, CONF_ESPWAN, DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -35,23 +35,6 @@ class FlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
             if test == None  or test == "unavailable":
                 errors["base"] = "nosensorstate"
               
-            
-            # try:
-                # self.hass.services.async_call("esphome",
-                    # self.config[CONF_ESPPLAY],
-                    # {"url": ""},
-                    # blocking=True,) 
-            # except:
-                # errors["play"] = "播放服务不可用"
-            
-            
-            # try:
-                # self.hass.services.async_call("esphome",
-                    # self.config[CONF_ESPSTOP],
-                    # {},
-                    # blocking=True,) 
-            # except:
-                # errors["stop"] = "停止服务不可用" 
             
             if not errors:
                 return self.async_create_entry(title=self.config[CONF_NAME], data=self.config)
@@ -112,7 +95,11 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
                 {
                     vol.Optional(
                         CONF_ESPVOL,
-                        default=self.config_entry.options.get(CONF_ESPVOL, None),
+                        default=self.config_entry.options.get(CONF_ESPVOL, "None"),
+                    ): vol.All(vol.Coerce(str)),
+                    vol.Optional(
+                        CONF_ESPWAN,
+                        default=self.config_entry.options.get(CONF_ESPWAN, "auto"),
                     ): vol.All(vol.Coerce(str))
                 }
             ),
