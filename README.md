@@ -1,6 +1,6 @@
 # EspPlayer
 
-此版本请尽量使用homeassistant 2022以后的版本，之前旧版本未测试
+2023版本请使用homeassistant 2023以后的版本
 
 1、为 rf-bridge 盒子提供支持的TTS播放器
 
