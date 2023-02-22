@@ -116,9 +116,9 @@ class ESPPlayer(MediaPlayerEntity):
         self._media_id = None
         self._mediatitle = None
         
-        if self._espplay.split('.')[0] == "esphome":
-            self.manufacturer = "EsphomePlayer"
-            self.model = "Esphome Rf-Bridge Speaker"
+        if self._espplay.split('.')[0] == "media_player":
+            self.manufacturer = "Esphome_Media_Player"
+            self.model = "Esphome Rf-Bridge Speaker"        
         elif self._espplay.split('/')[1] == "mrdiynotifier":
             self.manufacturer = "Esp8266mqttPlayer"
             self.model = "DIY Wifi Audio Notifier for ESP8266"
@@ -129,14 +129,15 @@ class ESPPlayer(MediaPlayerEntity):
         """Retrieve the latest data."""
         respState = self.get_entitystate(self._sensorstate)
         _LOGGER.debug ("entity：{}, respState:{}".format(self._sensorstate,respState))
-        
-        if respState == 'idle' or respState == 'on':
-            self._state = STATE_IDLE
-        elif respState == 'playing':
-            self._state = STATE_PLAYING
-        else:
-            self._state = STATE_OFF
-         
+        if respState:
+            if respState.state == 'idle' or respState.state == 'on':
+                self._state = STATE_IDLE
+            elif respState.state == 'playing':
+                self._state = STATE_PLAYING
+            else:
+                self._state.state = STATE_OFF
+            self._volume = respState.attributes["volume_level"]
+            self._muted = respState.attributes["is_volume_muted"]
         return True
         
     
@@ -150,7 +151,7 @@ class ESPPlayer(MediaPlayerEntity):
             self.entityFound = False
         else:
             self.entityFound = True
-            currentState = entity.state
+            currentState = entity
         return currentState
         
     
@@ -178,7 +179,7 @@ class ESPPlayer(MediaPlayerEntity):
         
     async def async_browse_media(self, media_content_type=None, media_content_id=None):
         """Implement the websocket media browsing helper."""
-        if self._espplay.split('.')[0] == "esphome":
+        if self._espplay.split('.')[0] == "media_player":
             mediatype = "audio/wav"
         elif self._espplay.split('/')[1] == "mrdiynotifier":
             mediatype = "audio/mpeg"
@@ -196,7 +197,7 @@ class ESPPlayer(MediaPlayerEntity):
         title: str = ""
         """Play a piece of media."""
         if media_source.is_media_source_id(media_id):
-            sourced_media = await media_source.async_resolve_media(self.hass, media_id)
+            sourced_media = await media_source.async_resolve_media(self.hass, media_id, self.entity_id)
             media_type = sourced_media.mime_type
             media_id = sourced_media.url
             
@@ -220,7 +221,21 @@ class ESPPlayer(MediaPlayerEntity):
          
         _LOGGER.debug("source media_id： %s", media_id)
         
-        if self._espplay.split('.')[0] == "esphome":
+        if self._espplay.split('.')[0] == "media_player":
+            _LOGGER.debug("media_id is %s ,player: %s", media_id, self._espplay)
+            if self._espwan is not None and self._espwan != "auto":
+                instance_url = get_url(self.hass)
+                media_id = media_id.replace(instance_url,self._espwan)
+            if self._mediatitle.split('.')[1] == "mp3":
+                wavfile = await self.async_audio2wav(self._mediatitle) 
+                media_id = media_id.replace(".mp3",".wav")
+                media_id = media_id.replace("/api/tts_proxy/","/local/wav/")
+            
+            await self.hass.services.async_call("media_player",
+                    "play_media",
+                    {"media_content_id": media_id, "media_content_type":"music", "entity_id": self._sensorstate},
+                    blocking=True,)
+        elif self._espplay.split('.')[0] == "esphome":
             _LOGGER.debug("media_id is %s ,player: %s", media_id, self._espplay)
             if self._espwan is not None and self._espwan != "auto":
                 instance_url = get_url(self.hass)
@@ -292,12 +307,14 @@ class ESPPlayer(MediaPlayerEntity):
         supported_features = 0
 
         supported_features |= MediaPlayerEntityFeature.PLAY
-
-        supported_features |= MediaPlayerEntityFeature.STOP
+        supported_features |= MediaPlayerEntityFeature.STOP        
         
-        if self._espvol != "" and self._espvol !=None:
+        
+        if (self._espvol != "" and self._espvol !=None) or (self._volume !=None):
             supported_features |= MediaPlayerEntityFeature.VOLUME_SET
             supported_features |= MediaPlayerEntityFeature.VOLUME_STEP
+        if self._muted !=None:
+            supported_features |= MediaPlayerEntityFeature.VOLUME_MUTE
 
         supported_features |= (
             MediaPlayerEntityFeature.PLAY_MEDIA
@@ -305,12 +322,17 @@ class ESPPlayer(MediaPlayerEntity):
         )
      
 
-        return supported_features
+        return supported_features    
 
     @property
-    def media_content_id(self):
-        """Content ID of current playing media."""
-        return self._media_id
+    def volume_level(self):
+        """Volume level of the media player (0..1)."""
+        return self._volume
+
+    @property
+    def is_volume_muted(self):
+        """Boolean if volume is currently muted."""
+        return self._muted
         
         
     @property
@@ -346,11 +368,16 @@ class ESPPlayer(MediaPlayerEntity):
 
     async def async_set_volume_level(self, volume: float) -> None:
         """Set volume level, range 0..1."""
-        if self._espplay.split('.')[0] == "esphome":
+        if self._espplay.split('.')[0] == "media_player":            
+            await self.hass.services.async_call("media_player",
+                    "volume_set",
+                    {"volume_level": volume, "entity_id": self._sensorstate},
+                    blocking=True,) 
+        elif self._espplay.split('.')[0] == "esphome":
             assert self._espvol is not None and self._espvol != "None"
             await self.hass.services.async_call(self._espplay.split('.')[0],
                     self._espplay.split('.')[1],
-                    {"setvolume": volume},
+                    {"set_volume": volume},
                     blocking=True,)   
         elif self._espplay.split('/')[1] == "mrdiynotifier":
             assert self._espvol is not None and self._espvol != "None"
@@ -359,16 +386,29 @@ class ESPPlayer(MediaPlayerEntity):
                     {"topic": self._espvol,"payload":volume},
                     blocking=True,)
         
-
+    async def async_mute_volume(self, mute: bool):
+        """Send mute_volume command."""
+        if self._espplay.split('.')[0] == "media_player":
+            await self.hass.services.async_call("media_player",
+                    "volume_mute",
+                    {"is_volume_muted": mute,"entity_id": self._sensorstate},
+                    blocking=True,)
+        
 
     async def async_media_stop(self):
         """Send stop command."""
-        if self._espplay.split('.')[0] == "esphome":
+        if self._espplay.split('.')[0] == "media_player":
+            assert self._espstop is not None
+            await self.hass.services.async_call("media_player",
+                    "media_stop",
+                    {"entity_id": self._sensorstate},
+                    blocking=True,)
+        elif self._espplay.split('.')[0] == "esphome":
             assert self._espstop is not None
             await self.hass.services.async_call(self._espstop.split('.')[0],
                     self._espstop.split('.')[1],
                     {},
-                    blocking=True,)   
+                    blocking=True,) 
         elif self._espplay.split('/')[1] == "mrdiynotifier":            
             assert self._espstop is not None
             await self.hass.services.async_call("mqtt",

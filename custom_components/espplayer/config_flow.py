@@ -43,8 +43,8 @@ class FlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
             step_id="user",
             data_schema=vol.Schema(
                     {
-                        vol.Required(CONF_NAME, default="Esp_1_Player"): str,
-                        vol.Required(CONF_SENSORSTATE, default="sensor.rf_bridge_1_player_status"): str,
+                        vol.Required(CONF_NAME, default="esp_wav_player"): str,
+                        vol.Required(CONF_SENSORSTATE, default="media_player.rf_media_player"): str,
                         vol.Required(CONF_ESPPLAY, default="esphome.rf_bridge_play_audio"): str,
                         vol.Required(CONF_ESPSTOP, default="esphome.rf_bridge_stop_audio"): str,
                     }
