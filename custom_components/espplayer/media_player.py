@@ -116,9 +116,12 @@ class ESPPlayer(MediaPlayerEntity):
         self._media_id = None
         self._mediatitle = None
         
-        if self._espplay.split('.')[0] == "media_player":
+        if self._sensorstate.split('.')[0] == "media_player":
+            self.manufacturer = "Mp3toWav_Media_Player"
+            self.model = "Esphome Rf-Bridge Speaker" 
+        elif self._espplay.split('.')[0] == "esphome":
             self.manufacturer = "Esphome_Media_Player"
-            self.model = "Esphome Rf-Bridge Speaker"        
+            self.model = "Esphome Rf-Bridge Speaker"                   
         elif self._espplay.split('/')[1] == "mrdiynotifier":
             self.manufacturer = "Esp8266mqttPlayer"
             self.model = "DIY Wifi Audio Notifier for ESP8266"
@@ -179,7 +182,7 @@ class ESPPlayer(MediaPlayerEntity):
         
     async def async_browse_media(self, media_content_type=None, media_content_id=None):
         """Implement the websocket media browsing helper."""
-        if self._espplay.split('.')[0] == "media_player":
+        if self._sensorstate.split('.')[0] == "media_player":
             mediatype = "audio/wav"
         elif self._espplay.split('/')[1] == "mrdiynotifier":
             mediatype = "audio/mpeg"
@@ -221,7 +224,7 @@ class ESPPlayer(MediaPlayerEntity):
          
         _LOGGER.debug("source media_id： %s", media_id)
         
-        if self._espplay.split('.')[0] == "media_player":
+        if self._sensorstate.split('.')[0] == "media_player":
             _LOGGER.debug("media_id is %s ,player: %s", media_id, self._espplay)
             if self._espwan is not None and self._espwan != "auto":
                 instance_url = get_url(self.hass)
@@ -368,7 +371,7 @@ class ESPPlayer(MediaPlayerEntity):
 
     async def async_set_volume_level(self, volume: float) -> None:
         """Set volume level, range 0..1."""
-        if self._espplay.split('.')[0] == "media_player":            
+        if self._sensorstate.split('.')[0] == "media_player":         
             await self.hass.services.async_call("media_player",
                     "volume_set",
                     {"volume_level": volume, "entity_id": self._sensorstate},
@@ -388,7 +391,7 @@ class ESPPlayer(MediaPlayerEntity):
         
     async def async_mute_volume(self, mute: bool):
         """Send mute_volume command."""
-        if self._espplay.split('.')[0] == "media_player":
+        if self._sensorstate.split('.')[0] == "media_player":
             await self.hass.services.async_call("media_player",
                     "volume_mute",
                     {"is_volume_muted": mute,"entity_id": self._sensorstate},
@@ -397,7 +400,7 @@ class ESPPlayer(MediaPlayerEntity):
 
     async def async_media_stop(self):
         """Send stop command."""
-        if self._espplay.split('.')[0] == "media_player":
+        if self._sensorstate.split('.')[0] == "media_player":
             assert self._espstop is not None
             await self.hass.services.async_call("media_player",
                     "media_stop",
