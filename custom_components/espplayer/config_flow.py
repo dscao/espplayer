@@ -26,7 +26,7 @@ class FlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
         if user_input is not None:
             self.config = user_input
             await self.async_set_unique_id(
-                f"espplayer-{self.config[CONF_ESPPLAY]}"
+                f"espplayer-{self.config[CONF_SENSORSTATE].replace('.','-')}-{self.config[CONF_ESPPLAY].replace('.','-')}"
             )
             self._abort_if_unique_id_configured()
             
@@ -45,8 +45,8 @@ class FlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
                     {
                         vol.Required(CONF_NAME, default="esp_wav_player"): str,
                         vol.Required(CONF_SENSORSTATE, default="media_player.rf_media_player"): str,
-                        vol.Required(CONF_ESPPLAY, default="esphome.rf_bridge_play_audio"): str,
-                        vol.Required(CONF_ESPSTOP, default="esphome.rf_bridge_stop_audio"): str,
+                        vol.Required(CONF_ESPPLAY, default="media_player.media_play"): str,
+                        vol.Required(CONF_ESPSTOP, default="media_player.media_stop"): str,
                     }
             ),
             errors=errors,

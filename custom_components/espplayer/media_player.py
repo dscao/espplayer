@@ -83,7 +83,7 @@ async def async_setup_entry(
     """Set up the espplayer Mediaplayer."""
     config = entry.data
     name = config[CONF_NAME]
-    unique_id = f"espplayer-{config[CONF_ESPPLAY]}"
+    unique_id = f"espplayer-{config[CONF_SENSORSTATE]}-{config[CONF_ESPPLAY]}"
     sensorstate = config[CONF_SENSORSTATE]
     espplay = config[CONF_ESPPLAY]
     espstop = config[CONF_ESPSTOP]
