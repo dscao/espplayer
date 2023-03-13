@@ -135,12 +135,14 @@ class ESPPlayer(MediaPlayerEntity):
         if respState:
             if respState.state == 'idle' or respState.state == 'on':
                 self._state = STATE_IDLE
+                self._volume = respState.attributes["volume_level"]
+                self._muted = respState.attributes["is_volume_muted"]
             elif respState.state == 'playing':
                 self._state = STATE_PLAYING
+                self._volume = respState.attributes["volume_level"]
+                self._muted = respState.attributes["is_volume_muted"]
             else:
-                self._state = STATE_OFF
-            self._volume = respState.attributes["volume_level"]
-            self._muted = respState.attributes["is_volume_muted"]
+                self._state = STATE_OFF            
         return True
         
     
