@@ -138,7 +138,7 @@ class ESPPlayer(MediaPlayerEntity):
             elif respState.state == 'playing':
                 self._state = STATE_PLAYING
             else:
-                self._state.state = STATE_OFF
+                self._state = STATE_OFF
             self._volume = respState.attributes["volume_level"]
             self._muted = respState.attributes["is_volume_muted"]
         return True
