@@ -185,17 +185,23 @@ class ESPPlayer(MediaPlayerEntity):
     async def async_browse_media(self, media_content_type=None, media_content_id=None):
         """Implement the websocket media browsing helper."""
         if self._sensorstate.split('.')[0] == "media_player":
-            mediatype = "audio/wav"
+            return await media_source.async_browse_media(
+                self.hass,
+                media_content_id,
+                content_filter=lambda item: (item.media_content_type.startswith("audio/wav") or item.media_content_type.startswith("audio/x-wav")),
+            )
         elif self._espplay.split('/')[1] == "mrdiynotifier":
-            mediatype = "audio/mpeg"
+            return await media_source.async_browse_media(
+                self.hass,
+                media_content_id,
+                content_filter=lambda item: item.media_content_type.startswith("audio/mpeg"),
+            )
         else:
-            mediatype = "audio/"
-            
-        return await media_source.async_browse_media(
-            self.hass,
-            media_content_id,
-            content_filter=lambda item: item.media_content_type.startswith(mediatype),
-        )
+            return await media_source.async_browse_media(
+                self.hass,
+                media_content_id,
+                content_filter=lambda item: item.media_content_type.startswith("audio/"),
+            )
 
     async def async_play_media(self, media_type: str, media_id: str, **kwargs):
         didl_metadata: str | None = None
