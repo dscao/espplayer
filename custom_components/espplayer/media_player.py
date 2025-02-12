@@ -14,10 +14,11 @@ from datetime import timedelta
 
 from homeassistant.components import media_source
 
+from homeassistant.components.tts import DATA_TTS_MANAGER
+
 import homeassistant.util.dt as dt_util
 
 from homeassistant.helpers.network import get_url
-
 
 from homeassistant.const import (
     STATE_IDLE, STATE_OFF, STATE_PAUSED, STATE_PLAYING, CONF_NAME
@@ -40,12 +41,9 @@ from homeassistant.helpers.update_coordinator import CoordinatorEntity, DataUpda
 from .const import CONF_SENSORSTATE, CONF_ESPPLAY, CONF_ESPSTOP, CONF_ESPVOL, CONF_ESPWAN, DOMAIN
         
 from homeassistant.components.media_player.const import (
-    MEDIA_TYPE_MUSIC,
+    MediaType,
+    RepeatMode,
     ATTR_MEDIA_EXTRA,
-    MEDIA_TYPE_PLAYLIST,
-    REPEAT_MODE_ALL,
-    REPEAT_MODE_OFF,
-    REPEAT_MODE_ONE,
 )
   
 
@@ -150,7 +148,7 @@ class ESPPlayer(MediaPlayerEntity):
 
     def get_entitystate(self,entityid):
         currentState=None
-        entity = self.hass.states.get(entityid)
+        entity = self._hass.states.get(entityid)
         if entity is None:
             _LOGGER.warning("Unable to find entity %s", entityid)
             self.entityFound = False
@@ -160,18 +158,34 @@ class ESPPlayer(MediaPlayerEntity):
         return currentState
         
     
-    async def async_audio2wav(self,audio_name: str):
+    async def async_audio2wav(self, audio_name: str):
         """
         任意音频格式转换为wav格式，需要安装ffmpeeg
         """
-        input_path = "tts/"+audio_name
-        output_name = audio_name.split('.')[0]+'.wav'
-        output_path = "www/wav/"+output_name
+
+        tts_manager = self._hass.data[DATA_TTS_MANAGER]
+        # 从 token 获取实际的文件名
+        filename = tts_manager.token_to_filename.get(audio_name)
+        _LOGGER.debug("filename: %s", filename)
+
+        if filename:
+            input_path = self._hass.config.path("tts")+"/"+ filename
+        else:
+            return "原文件路径错误"
+
+        output_name = filename.replace(".mp3",".wav")
+        output_dir = self._hass.config.path("www/wav")
+        if os.path.isdir(output_dir)==False:
+            os.mkdir(output_dir)
+        output_path = output_dir +"/"+output_name
+        _LOGGER.debug("input_path： %s", input_path)
         await self.wait_file(input_path)
         if os.path.isfile(input_path):
             os.system("ffmpeg -i "+ input_path+ " -n -acodec pcm_s16le -ac 1 -ar 16000 " +output_path )
             _LOGGER.debug("real media： %s", output_name)
-        return output_name
+            return output_name
+        else:
+            return "文件转化路径错误"
         
     async def wait_file(self,input_path):
         """Scan for MediaPlayer."""
@@ -231,41 +245,26 @@ class ESPPlayer(MediaPlayerEntity):
         self._mediatitle = unquote(mediatitle, encoding="UTF-8")      
          
         _LOGGER.debug("source media_id： %s", media_id)
-        
         if self._sensorstate.split('.')[0] == "media_player":
             _LOGGER.debug("media_id is %s ,player: %s", media_id, self._espplay)
+            instance_url = get_url(self.hass)
             if self._espwan is not None and self._espwan != "auto":
-                instance_url = get_url(self.hass)
                 media_id = media_id.replace(instance_url,self._espwan)
+                instance_url = self._espwan
             if self._mediatitle.split('.')[1] == "mp3":
+                _LOGGER.debug("self._mediatitle: %s", self._mediatitle)
                 wavfile = await self.async_audio2wav(self._mediatitle) 
-                media_id = media_id.replace(".mp3",".wav")
-                media_id = media_id.replace("/api/tts_proxy/","/local/wav/")
+                media_id = instance_url + "/local/wav/" + wavfile
+                
             
             await self.hass.services.async_call("media_player",
                     "play_media",
                     {"media_content_id": media_id, "media_content_type":"music", "entity_id": self._sensorstate},
-                    blocking=True,)
-        elif self._espplay.split('.')[0] == "esphome":
-            _LOGGER.debug("media_id is %s ,player: %s", media_id, self._espplay)
-            if self._espwan is not None and self._espwan != "auto":
-                instance_url = get_url(self.hass)
-                media_id = media_id.replace(instance_url,self._espwan)
-            if self._mediatitle.split('.')[1] == "mp3":
-                wavfile = await self.async_audio2wav(self._mediatitle) 
-                media_id = media_id.replace(".mp3",".wav")
-                media_id = media_id.replace("/api/tts_proxy/","/local/wav/")
-            
-            await self.hass.services.async_call(self._espplay.split('.')[0],
-                    self._espplay.split('.')[1],
-                    {"url": media_id},
                     blocking=True,)   
         elif self._espplay.split('/')[1] == "mrdiynotifier":
-            media_id = media_id.replace(".wav",".mp3")
             if self._espwan is not None and self._espwan != "auto":
-                instance_url = get_url(self.hass)
-                media_id = media_id = media_id.replace(instance_url,self._espwan)
-            _LOGGER.debug("media_id is %s ,player: %s", media_id, self._espplay)
+                media_id = media_id.replace(instance_url,self._espwan)
+                instance_url = self._espwan
             await self.hass.services.async_call("mqtt",
                     "publish",
                     {"topic": self._espplay,"payload": media_id},
@@ -354,7 +353,7 @@ class ESPPlayer(MediaPlayerEntity):
     @property
     def media_content_type(self):
         """Content type of current playing media."""
-        return MEDIA_TYPE_MUSIC
+        return MediaType.MUSIC
         
     @property
     def media_title(self):

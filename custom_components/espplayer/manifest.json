@@ -1,7 +1,7 @@
 {
   "domain": "espplayer",
   "name": "espplayer",
-  "version": "2022.6.8",
+  "version": "2025.2.12",
   "documentation": "https://github.com/dscao/espplayer",
   "dependencies": ["media_player"],
   "codeowners": ["@dscao"],
