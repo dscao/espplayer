@@ -157,21 +157,25 @@ class ESPPlayer(MediaPlayerEntity):
             currentState = entity
         return currentState
         
-    
+        
     async def async_audio2wav(self, audio_name: str):
-        """
-        任意音频格式转换为wav格式，需要安装ffmpeeg
-        """
-
+        """将任意音频格式转换为wav格式"""
         tts_manager = self._hass.data[DATA_TTS_MANAGER]
-        # 从 token 获取实际的文件名
-        filename = tts_manager.token_to_filename.get(audio_name)
-        _LOGGER.debug("filename: %s", filename)
+        
+        # 获取ResultStream对象
+        stream = tts_manager.token_to_stream.get(audio_name)
+        if not stream:
+            return "无效的token"
 
-        if filename:
-            input_path = self._hass.config.path("tts")+"/"+ filename
-        else:
-            return "原文件路径错误"
+        try:
+            # 等待_result_cache完成并获取TTSCache实例
+            cache = await stream._result_cache
+            filename = f"{cache.cache_key}.{cache.extension}".lower()
+        except Exception as e:
+            _LOGGER.error("获取缓存失败: %s", e)
+            return "缓存获取失败"
+
+        input_path = self._hass.config.path("tts") + "/" + filename
 
         output_name = filename.replace(".mp3",".wav")
         output_dir = self._hass.config.path("www/wav")
