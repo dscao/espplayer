@@ -1,5 +1,16 @@
 # EspPlayer
 
+ha2025后的官方 tts 内置支持格式转换，本集成弃用！
+
+
+```
+TTS integration building block uses FFmpeg integration to perform audio transcoding when target entity platform does not support one or all the specified preferred audio format settings (refer to specific platform documentation for any supported setting with related supported values).
+
+Available preferred audio settings, all optional, are:
+
+preferred_format: Set the audio format. When not supported by the target entity platform, the value is a file extension like wav, mp3, ogg, etc., among ones supported by FFmpeg tool for output files.
+```
+
 2025版本请使用homeassistant 2025.4 以后的版本
 
 1、为 rf-bridge 盒子提供支持的TTS播放器
